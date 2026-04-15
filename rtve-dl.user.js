@@ -26,15 +26,18 @@
         shadow:   'rgba(0,0,0,0.40)',
     };
 
-    const STORAGE_KEY = 'rtve-dl-widget-pos';
-    const HIDDEN_KEY  = 'rtve-dl-widget-hidden';
+    const STORAGE_KEY   = 'rtve-dl-widget-pos';
+    const HIDDEN_KEY    = 'rtve-dl-widget-hidden';
+    const WIDGET_WIDTH  = 324;
+    const WIDGET_HEIGHT = 80;
+    const MAX_Z_INDEX   = 2147483647;
 
     // ── Clamp helpers ─────────────────────────────────────────────────────────
     function clampX(x, w) {
-        return Math.max(0, Math.min(window.innerWidth  - (w || 324), x));
+        return Math.max(0, Math.min(window.innerWidth  - (w || WIDGET_WIDTH),  x));
     }
     function clampY(y, h) {
-        return Math.max(0, Math.min(window.innerHeight - (h || 80),  y));
+        return Math.max(0, Math.min(window.innerHeight - (h || WIDGET_HEIGHT), y));
     }
 
     // ── Inject ────────────────────────────────────────────────────────────────
@@ -45,7 +48,7 @@
         widget.id = 'rtve-dl-widget';
         Object.assign(widget.style, {
             position:     'fixed',
-            zIndex:       '2147483647',
+            zIndex:       String(MAX_Z_INDEX),
             borderRadius: '6px',
             boxShadow:    `0 6px 20px ${C.shadow}`,
             overflow:     'hidden',
@@ -109,7 +112,7 @@
         });
 
         const iframe = document.createElement('iframe');
-        iframe.src    = '//www.descargavideos.tv/form.php?l=300&t=f2&c=blanco';
+        iframe.src    = 'https://www.descargavideos.tv/form.php?l=300&t=f2&c=blanco';
         iframe.name   = 'form_dv';
         iframe.width  = '300';
         iframe.height = '46';
@@ -174,7 +177,7 @@
             position:       'fixed',
             bottom:         '24px',
             right:          '24px',
-            zIndex:         '2147483646',
+            zIndex:         String(MAX_Z_INDEX - 1),
             background:     C.red,
             color:          C.white,
             border:         'none',
