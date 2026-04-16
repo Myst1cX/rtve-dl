@@ -64,50 +64,53 @@
             'right:24px',
             'z-index:2147483647',
             'width:324px',
-            'background:#12122a',
-            'border:1px solid #1e2a4a',
+            'background:#0d1b36',
+            'border:1px solid #1a3055',
             'border-radius:10px',
-            'box-shadow:0 6px 28px rgba(0,0,0,.65)',
+            'box-shadow:0 8px 32px rgba(0,0,0,.75),0 1px 0 rgba(255,255,255,.04) inset',
             'font-family:Arial,sans-serif',
             'font-size:13px',
-            'color:#e8e8e8',
+            'color:#dde4f0',
             'user-select:none',
         ].join(';');
 
         widget.innerHTML = `
 <div id="rtve-dl-header" style="
     display:flex;justify-content:space-between;align-items:center;
-    padding:7px 10px;background:#0c2142;border-radius:10px 10px 0 0;cursor:move;">
-  <span style="color:#e94560;font-weight:bold;font-size:13px;">📥 RTVE Downloader</span>
+    padding:8px 11px;background:#0c2142;border-radius:10px 10px 0 0;cursor:move;
+    border-bottom:1px solid #1a3a60;">
+  <span style="color:#e94560;font-weight:bold;font-size:13px;letter-spacing:.3px;">📥 RTVE Downloader</span>
   <div style="display:flex;gap:2px;">
     <button id="rtve-dl-min" title="Minimise"
-      style="background:none;border:none;color:#ccc;cursor:pointer;font-size:17px;line-height:1;padding:0 5px;">−</button>
+      style="background:none;border:none;color:#7a9bbf;cursor:pointer;font-size:17px;line-height:1;padding:0 5px;transition:color .15s;">−</button>
     <button id="rtve-dl-close" title="Close"
-      style="background:none;border:none;color:#ccc;cursor:pointer;font-size:17px;line-height:1;padding:0 5px;">×</button>
+      style="background:none;border:none;color:#7a9bbf;cursor:pointer;font-size:17px;line-height:1;padding:0 5px;transition:color .15s;">×</button>
   </div>
 </div>
 <div id="rtve-dl-body" style="padding:10px 10px 12px;">
-  <iframe
-    width="304" height="46"
-    src="//www.descargavideos.tv/form.php?l=300&t=f2&c=negro"
-    name="form_dv"
-    allowtransparency="true"
-    frameborder="0"
-    scrolling="no"
-    style="display:block;border:0;">
-  </iframe>
-  <div style="margin-top:9px;">
-    <div style="color:#7a8aaa;font-size:11px;margin-bottom:4px;">
-      Current video page URL — paste it into the widget above:
+  <div style="background:#091528;border-radius:6px;padding:4px;border:1px solid #1a3055;">
+    <iframe
+      width="304" height="46"
+      src="//www.descargavideos.tv/form.php?l=300&t=f2&c=negro"
+      name="form_dv"
+      allowtransparency="true"
+      frameborder="0"
+      scrolling="no"
+      style="display:block;border:0;">
+    </iframe>
+  </div>
+  <div style="margin-top:10px;border-top:1px solid #1a3055;padding-top:9px;">
+    <div style="color:#6a85aa;font-size:11px;margin-bottom:5px;letter-spacing:.2px;">
+      Current video page URL — paste into the widget above:
     </div>
     <div style="display:flex;gap:5px;">
       <input id="rtve-dl-url-input" type="text" readonly
-        style="flex:1;min-width:0;background:#0a0a1e;border:1px solid #2a3a5a;
-               color:#dde;padding:4px 7px;border-radius:5px;font-size:11px;outline:none;" />
+        style="flex:1;min-width:0;background:#091528;border:1px solid #1a3055;
+               color:#b8ccdd;padding:5px 8px;border-radius:5px;font-size:11px;outline:none;" />
       <button id="rtve-dl-copy"
-        style="background:#e94560;border:none;color:#fff;padding:4px 9px;
+        style="background:#e94560;border:none;color:#fff;padding:5px 10px;
                border-radius:5px;cursor:pointer;font-size:11px;white-space:nowrap;
-               transition:background .2s;">Copy</button>
+               transition:background .2s;font-weight:600;letter-spacing:.2px;">Copy</button>
     </div>
   </div>
 </div>`;
