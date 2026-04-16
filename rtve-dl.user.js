@@ -1,16 +1,16 @@
 // ==UserScript==
 // @name         RTVE Video and Subtitle Downloader
-// @namespace    https://github.com/Myst1cX/rtve-video-dl
+// @namespace    https://github.com/Myst1cX/rtve-dl
 // @version      1.3
-// @description  A RTVE downloader powered by downloadvideos.tv. Displays the downloadvideos.tv widget on RTVE videos. Works with both HLS and encrypted video streams.
+// @description  A RTVE downloader powered by downloadvideos.tv. Displays the downloadvideos.tv widget on RTVE videos. Works with both HLS and encrypted video streams. You may need to use a VPN to download a geo-blocked RTVE video.
 // @author       Myst1cX
 // @match        https://www.rtve.es/*
 // @run-at       document-idle
 // @grant        GM_setClipboard
-// @homepageURL  https://github.com/Myst1cX/rtve-video-dl
+// @homepageURL  https://github.com/Myst1cX/rtve-dl
 // @supportURL   https://github.com/Myst1cX/rtve-dl/issues
-// @updateURL    https://raw.githubusercontent.com/Myst1cX/rtve-video-dl/main/rtve-video-dl.user.js
-// @downloadURL  https://raw.githubusercontent.com/Myst1cX/rtve-video-dl/main/rtve-video-dl.user.js
+// @updateURL    https://raw.githubusercontent.com/Myst1cX/rtve-video-dl/main/rtve-dl.user.js
+// @downloadURL  https://raw.githubusercontent.com/Myst1cX/rtve-video-dl/main/rtve-dl.user.js
 // ==/UserScript==
 
 (function () {
