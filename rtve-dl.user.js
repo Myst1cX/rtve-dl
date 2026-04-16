@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RTVE Video and Subtitle Downloader
 // @namespace    https://github.com/Myst1cX/rtve-video-dl
-// @version      1.1
+// @version      1.2
 // @description  A RTVE downloader powered by downloadvideos.tv. Displays the downloadvideos.tv widget on RTVE videos. Works with both HLS and encrypted video streams.
 // @author       Myst1cX
 // @match        https://www.rtve.es/*
@@ -17,30 +17,29 @@
     'use strict';
 
     const WIDGET_ID = 'rtve-dl-widget';
+    const STORAGE_KEY = 'rtve-dl-state';
+    const SPA_NAV_DELAY = 300; // ms to wait after navigation before reading the new URL
+    const CSS_PX = /^-?\d+(\.\d+)?px$/;
+
+    // ── Persistence ───────────────────────────────────────────────────────────
+
+    function loadState() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+        catch (_) { return {}; }
+    }
+
+    function saveState(patch) {
+        try {
+            const state = loadState();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.assign(state, patch)));
+        } catch (_) {}
+    }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     function copyToClipboard(text) {
-        if (typeof GM_setClipboard !== 'undefined') {
-            GM_setClipboard(text);
-            return true;
-        }
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).catch(() => {});
-            return true;
-        }
-        try {
-            const ta = document.createElement('textarea');
-            ta.value = text;
-            ta.style.cssText = 'position:fixed;opacity:0';
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            ta.remove();
-            return true;
-        } catch (_) {
-            return false;
-        }
+        if (typeof GM_setClipboard !== 'undefined') { GM_setClipboard(text); return; }
+        if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
     }
 
     function updateUrlField() {
@@ -56,12 +55,17 @@
             return;
         }
 
+        const savedState = loadState();
+
         const widget = document.createElement('div');
         widget.id = WIDGET_ID;
+
+        const hasSavedPos = CSS_PX.test(savedState.left) && CSS_PX.test(savedState.top);
+
         widget.style.cssText = [
             'position:fixed',
-            'bottom:24px',
-            'right:24px',
+            hasSavedPos ? `left:${savedState.left}` : 'right:24px',
+            hasSavedPos ? `top:${savedState.top}` : 'bottom:24px',
             'z-index:2147483647',
             'width:324px',
             'background:#141414',
@@ -118,11 +122,22 @@
         updateUrlField();
 
         // Minimise / expand
-        let minimised = false;
-        document.getElementById('rtve-dl-min').addEventListener('click', () => {
+        let minimised = savedState.minimised || false;
+        const body = document.getElementById('rtve-dl-body');
+        const minBtn = document.getElementById('rtve-dl-min');
+
+        function applyMinimised() {
+            body.style.display = minimised ? 'none' : '';
+            minBtn.textContent = minimised ? '+' : '−';
+            minBtn.title = minimised ? 'Expand' : 'Minimise';
+        }
+
+        applyMinimised();
+
+        minBtn.addEventListener('click', () => {
             minimised = !minimised;
-            document.getElementById('rtve-dl-body').style.display = minimised ? 'none' : '';
-            document.getElementById('rtve-dl-min').textContent = minimised ? '+' : '−';
+            applyMinimised();
+            saveState({ minimised });
         });
 
         // Close
@@ -131,52 +146,51 @@
         });
 
         // Copy button
-        document.getElementById('rtve-dl-copy').addEventListener('click', () => {
-            const url = document.getElementById('rtve-dl-url-input').value;
-            copyToClipboard(url);
-            const btn = document.getElementById('rtve-dl-copy');
-            if (!btn) return;
-            btn.textContent = '✓ Copied';
-            btn.style.background = '#28a745';
-            setTimeout(() => {
-                if (document.getElementById('rtve-dl-copy')) {
-                    btn.textContent = 'Copy';
-                    btn.style.background = '#e94560';
-                }
+        const copyBtn = document.getElementById('rtve-dl-copy');
+        let copyTimer;
+        copyBtn.addEventListener('click', () => {
+            copyToClipboard(document.getElementById('rtve-dl-url-input').value);
+            copyBtn.textContent = '✓ Copied';
+            copyBtn.style.background = '#28a745';
+            clearTimeout(copyTimer);
+            copyTimer = setTimeout(() => {
+                copyBtn.textContent = 'Copy';
+                copyBtn.style.background = '#e94560';
             }, 2000);
         });
 
         // Drag
         makeDraggable(widget, document.getElementById('rtve-dl-header'));
-
-        // Auto-copy the URL to clipboard so the user can paste immediately
-        const url = document.getElementById('rtve-dl-url-input').value;
-        copyToClipboard(url);
     }
 
-    function makeDraggable(el, handle) {
-        let dragging = false, ox = 0, oy = 0;
+    function makeDraggable(popup, handle) {
+        let dragging = false, offsetX = 0, offsetY = 0;
 
         handle.addEventListener('mousedown', (e) => {
             dragging = true;
-            const r = el.getBoundingClientRect();
+            const rect = popup.getBoundingClientRect();
             // Switch from bottom/right anchoring to top/left so movement is natural
-            el.style.bottom = 'auto';
-            el.style.right = 'auto';
-            el.style.left = r.left + 'px';
-            el.style.top = r.top + 'px';
-            ox = e.clientX - r.left;
-            oy = e.clientY - r.top;
+            popup.style.bottom = 'auto';
+            popup.style.right = 'auto';
+            popup.style.left = rect.left + 'px';
+            popup.style.top = rect.top + 'px';
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
             e.preventDefault();
         });
 
         document.addEventListener('mousemove', (e) => {
             if (!dragging) return;
-            el.style.left = (e.clientX - ox) + 'px';
-            el.style.top = (e.clientY - oy) + 'px';
+            popup.style.left = (e.clientX - offsetX) + 'px';
+            popup.style.top = (e.clientY - offsetY) + 'px';
         });
 
-        document.addEventListener('mouseup', () => { dragging = false; });
+        document.addEventListener('mouseup', () => {
+            if (dragging) {
+                dragging = false;
+                saveState({ left: popup.style.left, top: popup.style.top });
+            }
+        });
     }
 
     // ── Video detection ───────────────────────────────────────────────────────
@@ -192,14 +206,10 @@
     }
 
     // Watch for dynamically inserted <video> elements (SPA)
-    const domObserver = new MutationObserver(attachVideoListeners);
-    domObserver.observe(document.documentElement, { childList: true, subtree: true });
+    const videoWatcher = new MutationObserver(attachVideoListeners);
+    videoWatcher.observe(document.documentElement, { childList: true, subtree: true });
 
-    // Small delay to let the SPA finish updating the URL before we read it
-    const SPA_NAV_DELAY = 300;
-
-    // Intercept history.pushState / replaceState to update the URL field when
-    // the user navigates within the SPA
+    // Update URL field on SPA navigation
     ['pushState', 'replaceState'].forEach((method) => {
         const original = history[method];
         history[method] = function (...args) {
