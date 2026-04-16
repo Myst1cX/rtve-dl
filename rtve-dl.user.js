@@ -18,15 +18,13 @@
 
     const WIDGET_ID = 'rtve-dl-widget';
     const STORAGE_KEY = 'rtve-dl-state';
+    const CSS_PX = /^-?\d+(\.\d+)?px$/;
 
     // ── Persistence ───────────────────────────────────────────────────────────
 
     function loadState() {
-        try {
-            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-        } catch (_) {
-            return {};
-        }
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+        catch (_) { return {}; }
     }
 
     function saveState(patch) {
@@ -39,26 +37,8 @@
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     function copyToClipboard(text) {
-        if (typeof GM_setClipboard !== 'undefined') {
-            GM_setClipboard(text);
-            return true;
-        }
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).catch(() => {});
-            return true;
-        }
-        try {
-            const ta = document.createElement('textarea');
-            ta.value = text;
-            ta.style.cssText = 'position:fixed;opacity:0';
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            ta.remove();
-            return true;
-        } catch (_) {
-            return false;
-        }
+        if (typeof GM_setClipboard !== 'undefined') { GM_setClipboard(text); return; }
+        if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
     }
 
     function updateUrlField() {
@@ -79,8 +59,7 @@
         const widget = document.createElement('div');
         widget.id = WIDGET_ID;
 
-        const CSS_LENGTH = /^-?\d+(\.\d+)?px$/;
-        const hasSavedPos = CSS_LENGTH.test(savedState.left) && CSS_LENGTH.test(savedState.top);
+        const hasSavedPos = CSS_PX.test(savedState.left) && CSS_PX.test(savedState.top);
 
         widget.style.cssText = [
             'position:fixed',
@@ -166,18 +145,16 @@
         });
 
         // Copy button
-        document.getElementById('rtve-dl-copy').addEventListener('click', () => {
-            const url = document.getElementById('rtve-dl-url-input').value;
-            copyToClipboard(url);
-            const btn = document.getElementById('rtve-dl-copy');
-            if (!btn) return;
-            btn.textContent = '✓ Copied';
-            btn.style.background = '#28a745';
-            setTimeout(() => {
-                if (document.getElementById('rtve-dl-copy')) {
-                    btn.textContent = 'Copy';
-                    btn.style.background = '#e94560';
-                }
+        const copyBtn = document.getElementById('rtve-dl-copy');
+        let copyTimer;
+        copyBtn.addEventListener('click', () => {
+            copyToClipboard(document.getElementById('rtve-dl-url-input').value);
+            copyBtn.textContent = '✓ Copied';
+            copyBtn.style.background = '#28a745';
+            clearTimeout(copyTimer);
+            copyTimer = setTimeout(() => {
+                copyBtn.textContent = 'Copy';
+                copyBtn.style.background = '#e94560';
             }, 2000);
         });
 
@@ -231,16 +208,12 @@
     const domObserver = new MutationObserver(attachVideoListeners);
     domObserver.observe(document.documentElement, { childList: true, subtree: true });
 
-    // Small delay to let the SPA finish updating the URL before we read it
-    const SPA_NAV_DELAY = 300;
-
-    // Intercept history.pushState / replaceState to update the URL field when
-    // the user navigates within the SPA
+    // Update URL field on SPA navigation
     ['pushState', 'replaceState'].forEach((method) => {
         const original = history[method];
         history[method] = function (...args) {
             original.apply(this, args);
-            setTimeout(updateUrlField, SPA_NAV_DELAY);
+            setTimeout(updateUrlField, 300);
         };
     });
     window.addEventListener('popstate', updateUrlField);
