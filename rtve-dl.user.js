@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RTVE Video and Subtitle Downloader
 // @namespace    https://github.com/Myst1cX/rtve-video-dl
-// @version      1.1
+// @version      1.2
 // @description  A RTVE downloader powered by downloadvideos.tv. Displays the downloadvideos.tv widget on RTVE videos. Works with both HLS and encrypted video streams.
 // @author       Myst1cX
 // @match        https://www.rtve.es/*
@@ -17,6 +17,24 @@
     'use strict';
 
     const WIDGET_ID = 'rtve-dl-widget';
+    const STORAGE_KEY = 'rtve-dl-state';
+
+    // ── Persistence ───────────────────────────────────────────────────────────
+
+    function loadState() {
+        try {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function saveState(patch) {
+        try {
+            const state = loadState();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.assign(state, patch)));
+        } catch (_) {}
+    }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -56,12 +74,18 @@
             return;
         }
 
+        const savedState = loadState();
+
         const widget = document.createElement('div');
         widget.id = WIDGET_ID;
+
+        const CSS_LENGTH = /^-?\d+(\.\d+)?px$/;
+        const hasSavedPos = CSS_LENGTH.test(savedState.left) && CSS_LENGTH.test(savedState.top);
+
         widget.style.cssText = [
             'position:fixed',
-            'bottom:24px',
-            'right:24px',
+            hasSavedPos ? `left:${savedState.left}` : 'right:24px',
+            hasSavedPos ? `top:${savedState.top}` : 'bottom:24px',
             'z-index:2147483647',
             'width:324px',
             'background:#141414',
@@ -118,11 +142,22 @@
         updateUrlField();
 
         // Minimise / expand
-        let minimised = false;
-        document.getElementById('rtve-dl-min').addEventListener('click', () => {
+        let minimised = savedState.minimised || false;
+        const body = document.getElementById('rtve-dl-body');
+        const minBtn = document.getElementById('rtve-dl-min');
+
+        function applyMinimised() {
+            body.style.display = minimised ? 'none' : '';
+            minBtn.textContent = minimised ? '+' : '−';
+            minBtn.title = minimised ? 'Expand' : 'Minimise';
+        }
+
+        applyMinimised();
+
+        minBtn.addEventListener('click', () => {
             minimised = !minimised;
-            document.getElementById('rtve-dl-body').style.display = minimised ? 'none' : '';
-            document.getElementById('rtve-dl-min').textContent = minimised ? '+' : '−';
+            applyMinimised();
+            saveState({ minimised });
         });
 
         // Close
@@ -148,10 +183,6 @@
 
         // Drag
         makeDraggable(widget, document.getElementById('rtve-dl-header'));
-
-        // Auto-copy the URL to clipboard so the user can paste immediately
-        const url = document.getElementById('rtve-dl-url-input').value;
-        copyToClipboard(url);
     }
 
     function makeDraggable(el, handle) {
@@ -176,7 +207,12 @@
             el.style.top = (e.clientY - oy) + 'px';
         });
 
-        document.addEventListener('mouseup', () => { dragging = false; });
+        document.addEventListener('mouseup', () => {
+            if (dragging) {
+                dragging = false;
+                saveState({ left: el.style.left, top: el.style.top });
+            }
+        });
     }
 
     // ── Video detection ───────────────────────────────────────────────────────
