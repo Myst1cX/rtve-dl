@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RTVE Video and Subtitle Downloader
 // @namespace    https://github.com/Myst1cX/rtve-video-dl
-// @version      1.2
+// @version      1.3
 // @description  A RTVE downloader powered by downloadvideos.tv. Displays the downloadvideos.tv widget on RTVE videos. Works with both HLS and encrypted video streams.
 // @author       Myst1cX
 // @match        https://www.rtve.es/*
@@ -193,33 +193,36 @@
         });
     }
 
-    // ── Video detection ───────────────────────────────────────────────────────
+    // ── URL-based detection ───────────────────────────────────────────────────
 
-    const attachedVideos = new WeakSet();
-
-    function attachVideoListeners() {
-        document.querySelectorAll('video').forEach((video) => {
-            if (attachedVideos.has(video)) return;
-            attachedVideos.add(video);
-            video.addEventListener('play', createWidget);
-        });
+    function isVideoPage() {
+        return /rtve\.es\/play\/videos\//.test(location.href);
     }
 
-    // Watch for dynamically inserted <video> elements (SPA)
-    const videoWatcher = new MutationObserver(attachVideoListeners);
-    videoWatcher.observe(document.documentElement, { childList: true, subtree: true });
+    function removeWidget() {
+        const existing = document.getElementById(WIDGET_ID);
+        if (existing) existing.remove();
+    }
 
-    // Update URL field on SPA navigation
+    function checkUrl() {
+        if (isVideoPage()) {
+            createWidget();
+        } else {
+            removeWidget();
+        }
+    }
+
+    // Update on SPA navigation
     ['pushState', 'replaceState'].forEach((method) => {
         const original = history[method];
         history[method] = function (...args) {
             original.apply(this, args);
-            setTimeout(updateUrlField, SPA_NAV_DELAY);
+            setTimeout(checkUrl, SPA_NAV_DELAY);
         };
     });
-    window.addEventListener('popstate', updateUrlField);
+    window.addEventListener('popstate', () => setTimeout(checkUrl, SPA_NAV_DELAY));
 
     // Run once on initial load
-    attachVideoListeners();
+    checkUrl();
 
 })();
